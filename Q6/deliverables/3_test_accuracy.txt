@@ -1,0 +1,3 @@
+Q6.7 Deliverable 3: Final test accuracy
+==================================================
+Final test accuracy: 96.40%

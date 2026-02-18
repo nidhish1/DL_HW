@@ -1,0 +1,5 @@
+Q6.7 Deliverable 1: Gradient check output
+==================================================
+Gradient check run on 5 samples (small model 784->32->16->10 for numerical stability).
+Max relative error: 1.04e-06
+PASSED (error < 1e-5)

@@ -1,0 +1,430 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  frame=single,
+  breaklines=true,
+  showstringspaces=false
+}
+
+\title{Homework 1: Neural Networks from Scratch\\
+CS-GY 6953 Deep Learning --- Spring 2026\\
+Problems 4, 5, and 6}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Problem 4: Blood Cell Classification with MLPs (15 points)}
+
+In this problem, you will train a multi-layer perceptron (MLP) to classify microscopy images of blood cells. Medical image classification is a rapidly growing application of deep learning, and this exercise will give you hands-on experience with a real-world healthcare dataset.
+
+\subsection*{Dataset: BloodMNIST}
+
+BloodMNIST is part of the MedMNIST collection --- a standardized set of medical image datasets designed for benchmarking. It contains \textbf{17,092 microscopy images} of individual blood cells, each labeled as one of \textbf{8 cell types}:
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Class ID & Cell Type \\
+    \midrule
+    0 & Basophil \\
+    1 & Eosinophil \\
+    2 & Erythroblast \\
+    3 & Immature Granulocyte (IG) \\
+    4 & Lymphocyte \\
+    5 & Monocyte \\
+    6 & Neutrophil \\
+    7 & Platelet \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Each image is \textbf{28 $\times$ 28 pixels with 3 color channels (RGB)}. The dataset is pre-split into training (11,959), validation (1,712), and test (3,421) sets.
+
+\subsection*{Your Tasks}
+
+\subsubsection*{Q4.1: Data Loading and Exploration (2 points)}
+\begin{enumerate}
+  \item Install and load BloodMNIST using the \texttt{medmnist} package
+  \item Report the number of samples in train/val/test splits
+  \item Display a grid of \textbf{16 random training images} (2 per class) with their class labels
+  \item Plot the \textbf{class distribution} (bar chart) for the training set. Is the dataset balanced?
+\end{enumerate}
+
+\subsubsection*{Q4.2: Build and Train an MLP (5 points)}
+\begin{enumerate}
+  \item Flatten each $28 \times 28 \times 3$ RGB image into a \textbf{2,352-dimensional} input vector
+  \item Build a 3-layer MLP in PyTorch with the following architecture:
+  \begin{itemize}
+    \item Input: 2352 $\rightarrow$ Hidden 1: 256 (ReLU) $\rightarrow$ Hidden 2: 128 (ReLU) $\rightarrow$ Output: 8
+  \end{itemize}
+  \item Use the \textbf{Adam optimizer} with learning rate \texttt{1e-3} and \textbf{CrossEntropyLoss}
+  \item Train for \textbf{30 epochs} with batch size 64
+  \item Plot \textbf{training loss} and \textbf{validation loss} on the same figure (x-axis: epoch)
+  \item Plot \textbf{training accuracy} and \textbf{validation accuracy} on the same figure
+\end{enumerate}
+
+\subsubsection*{Q4.3: Evaluation and Analysis (5 points)}
+\begin{enumerate}
+  \item Report the \textbf{final test accuracy} (as a percentage)
+  \item Generate a \textbf{confusion matrix} ($8 \times 8$) for the test set using \texttt{sklearn.metrics.confusion\_matrix} and visualize it as a heatmap with class labels
+  \item Identify the \textbf{two most confused cell type pairs} (highest off-diagonal values in the confusion matrix)
+  \item Compute and report \textbf{per-class precision and recall} using \texttt{sklearn.metrics.classification\_report}
+  \item Which cell type has the \textbf{lowest recall}? Examine 5 misclassified examples of this cell type and hypothesize why the model struggles with it.
+\end{enumerate}
+
+\subsubsection*{Q4.4: Prediction Confidence Analysis (3 points)}
+
+For this analysis, categorize predictions into four quadrants based on confidence and correctness:
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lcc}
+    \toprule
+    & Correct & Incorrect \\
+    \midrule
+    \textbf{High Confidence} (max prob $>$ 0.9) & $\checkmark$ Confident & $\times$ Confident \\
+    \textbf{Low Confidence} (max prob $<$ 0.6) & $\checkmark$ Uncertain & $\times$ Uncertain \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{enumerate}
+  \item Find and display \textbf{2 examples from each quadrant} (8 images total) with:
+  \begin{itemize}
+    \item The image
+    \item True label
+    \item Predicted label
+    \item Prediction confidence (max softmax probability)
+  \end{itemize}
+  \item \textbf{Written Analysis (3-4 sentences)}: What visual characteristics distinguish the ``Incorrect but Confident'' examples? Why might the model be overconfident on these samples?
+\end{enumerate}
+
+\section*{Problem 5: Weight Initialization and Training Dynamics (15 points)}
+
+Proper weight initialization is crucial for training deep neural networks. Poor initialization can cause activations to vanish (all zeros) or explode (very large values), making learning impossible. In this problem, you will empirically investigate how different initialization schemes affect activation statistics and training dynamics.
+
+\subsection*{Your Tasks}
+
+\subsubsection*{Q5.1: Implement Initialization Schemes (3 points)}
+
+Implement the following four initialization methods for a weight matrix of shape \texttt{(fan\_in, fan\_out)}:
+\begin{enumerate}
+  \item \textbf{Zero Initialization}: All weights set to 0
+  \item \textbf{Small Random}: Weights sampled from $\mathcal{N}(0, \sigma^2 = 0.01^2)$
+  \item \textbf{Xavier/Glorot}: Weights sampled from $\mathcal{N}(0, \sigma^2 = \frac{2}{fan\_{in} + fan\_{out}})$
+  \item \textbf{He/Kaiming}: Weights sampled from $\mathcal{N}(0, \sigma^2 = \frac{2}{fan\_{in}})$
+\end{enumerate}
+
+\textit{Note: The second parameter in the normal distribution notation above represents the \textbf{variance} ($\sigma^2$), not the standard deviation ($\sigma$).}
+
+Write a function \texttt{initialize\_weights(shape, method)} that returns a PyTorch tensor initialized according to the specified method. Biases should always be initialized to zero.
+
+\subsubsection*{Q5.2: Activation Statistics Before Training (5 points)}
+
+Build a \textbf{6-layer MLP} for MNIST classification:
+\begin{itemize}
+  \item Architecture: 784 $\rightarrow$ 256 $\rightarrow$ 256 $\rightarrow$ 256 $\rightarrow$ 256 $\rightarrow$ 256 $\rightarrow$ 10
+  \item Use \textbf{Tanh} activations for all hidden layers
+\end{itemize}
+
+For each of the 4 initialization methods:
+\begin{enumerate}
+  \item Initialize the network (do NOT train yet)
+  \item Forward pass a batch of 256 random MNIST images
+  \item Record the \textbf{mean} and \textbf{standard deviation} of activations at each of the 5 hidden layers
+  \item Create a figure with \textbf{2 subplots}:
+  \begin{itemize}
+    \item Subplot 1: Mean activation vs.\ layer depth (4 lines, one per init method)
+    \item Subplot 2: Std of activation vs.\ layer depth (4 lines, one per init method)
+  \end{itemize}
+\end{enumerate}
+
+\textbf{Written Analysis (3-4 sentences)}: Which initialization methods show vanishing activations (std $\rightarrow$ 0)? Which maintain stable activation statistics across layers? Explain why Xavier initialization is designed for Tanh/Sigmoid activations.
+
+\subsubsection*{Q5.3: Training Dynamics Comparison (4 points)}
+
+Now train all 4 networks for \textbf{10 epochs} on MNIST:
+\begin{itemize}
+  \item Optimizer: SGD with learning rate 0.1
+  \item Batch size: 128
+  \item Loss: CrossEntropyLoss
+\end{itemize}
+
+\begin{enumerate}
+  \item Plot all 4 \textbf{training loss curves} on the same figure
+  \item Report the \textbf{test accuracy} after 10 epochs for each initialization
+\end{enumerate}
+
+\textit{\textbf{Note:} Zero initialization is \textbf{expected to fail completely} --- the network will produce exactly zero gradients due to symmetry (all neurons compute the same values and receive the same updates). This is the ``symmetry breaking'' problem. If your zero-initialized network shows no learning, your implementation is likely correct.}
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{ll}
+    \toprule
+    Initialization & Test Accuracy (\%) \\
+    \midrule
+    Zero & \\
+    Small Random & \\
+    Xavier & \\
+    He & \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsubsection*{Q5.4: ReLU Activation Experiment (3 points)}
+
+Repeat Q5.2 and Q5.3 but replace \textbf{Tanh} with \textbf{ReLU} activations.
+\begin{enumerate}
+  \item Create the same activation statistics plots (mean and std vs.\ layer depth) for all 4 initializations with ReLU
+  \item Train for 10 epochs and report test accuracies
+\end{enumerate}
+
+\textbf{Written Analysis (4-5 sentences)}:
+\begin{itemize}
+  \item How do the activation statistics differ between Tanh and ReLU networks?
+  \item Which initialization works best for ReLU? Why is He initialization specifically designed for ReLU?
+  \item Create a summary table recommending the best initialization for each activation function based on your experiments.
+\end{itemize}
+
+\section*{Problem 6: Building a Neural Network Library from Scratch (25 points)}
+
+In this problem, you will implement the core components of a neural network library using only NumPy --- no PyTorch autograd allowed. This exercise will deepen your understanding of how frameworks like PyTorch work under the hood.
+
+You will build modular components with a consistent API, then combine them to train on real data. \textbf{All gradient computations must be implemented manually.}
+
+\subsection*{Library Architecture}
+
+Your library should follow this structure:
+
+\begin{verbatim}
+mytorch/
+|-- nn/
+|   |-- modules/
+|   |   |-- linear.py      # Linear (fully-connected) layer
+|   |   |-- activation.py  # ReLU, Sigmoid activations
+|   |   `-- loss.py        # SoftmaxCrossEntropy loss
+|   |-- sequential.py      # Sequential container
+|   `-- optim.py           # SGD optimizer
+`-- utils/
+    `-- gradient_check.py  # Numerical gradient verification
+\end{verbatim}
+
+\subsection*{Module API}
+
+Every module must implement:
+\begin{lstlisting}[language=Python]
+class Module:
+    def forward(self, x):
+        """Compute output given input x. Cache values needed for backward."""
+        raise NotImplementedError
+    
+    def backward(self, grad_output):
+        """Compute gradients given upstream gradient. Return gradient w.r.t. input."""
+        raise NotImplementedError
+    
+    def get_parameters(self):
+        """Return list of parameter arrays (empty for activations)."""
+        return []
+    
+    def get_gradients(self):
+        """Return list of gradient arrays (same order as parameters)."""
+        return []
+\end{lstlisting}
+
+\subsection*{Your Tasks}
+
+\subsubsection*{Q6.1: Implement Linear Layer (5 points)}
+
+Implement a fully-connected layer: $Z = XW^T + b$
+
+Where:
+\begin{itemize}
+  \item $X$: input of shape \texttt{(batch\_size, in\_features)}
+  \item $W$: weights of shape \texttt{(out\_features, in\_features)}
+  \item $b$: bias of shape \texttt{(out\_features,)}
+  \item $Z$: output of shape \texttt{(batch\_size, out\_features)}
+\end{itemize}
+
+\textbf{Forward pass:}
+$$Z = XW^T + b$$
+
+\textbf{Backward pass:} Given $\frac{\partial L}{\partial Z}$ (shape: \texttt{batch\_size} $\times$ \texttt{out\_features}), compute:
+$$\frac{\partial L}{\partial W} = \left(\frac{\partial L}{\partial Z}\right)^T X$$
+$$\frac{\partial L}{\partial b} = \sum_{i=1}^{batch} \frac{\partial L}{\partial Z_i}$$
+$$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial Z} \cdot W$$
+
+Initialize weights using \textbf{Xavier/Glorot initialization} (consistent with Problem 5, Q5.1):
+$$W \sim \mathcal{N}\left(0, \sigma^2 = \frac{2}{n_{in} + n_{out}}\right)$$
+
+\textit{Note: Xavier initialization is theoretically designed for Tanh/Sigmoid activations. While He initialization ($\sigma^2 = \frac{2}{n_{in}}$) is optimal for ReLU networks, Xavier works adequately for shallow networks like the one in Q6.7. You may optionally implement both and compare.}
+
+\subsubsection*{Q6.2: Implement Activations (4 points)}
+
+\textbf{ReLU:}
+$$\text{forward: } y = \max(0, x)$$
+$$\text{backward: } \frac{\partial L}{\partial x} = \frac{\partial L}{\partial y} \odot \mathbf{1}_{x > 0}$$
+
+\textbf{Sigmoid:}
+$$\text{forward: } y = \sigma(x) = \frac{1}{1 + e^{-x}}$$
+$$\text{backward: } \frac{\partial L}{\partial x} = \frac{\partial L}{\partial y} \odot \sigma(x)(1 - \sigma(x))$$
+
+Use numerically stable implementations (clip inputs to avoid overflow).
+
+\subsubsection*{Q6.3: Implement SoftmaxCrossEntropy Loss (5 points)}
+
+Implement the combined softmax and cross-entropy loss for numerical stability:
+
+\textbf{Forward pass:}
+$$\hat{y}_i = \text{softmax}(z)_i = \frac{e^{z_i - \max(z)}}{\sum_j e^{z_j - \max(z)}}$$
+$$L = -\sum_i y_i \log(\hat{y}_i)$$
+
+Where $y$ is the one-hot encoded true label.
+
+\textbf{Backward pass:}
+$$\frac{\partial L}{\partial z} = \hat{y} - y$$
+
+This simplified gradient is one of the beautiful results of combining softmax with cross-entropy!
+
+\textbf{Batch handling:} The loss should be \textbf{averaged over the batch}:
+$$L = -\frac{1}{N}\sum_{n=1}^{N}\sum_i y_i^{(n)} \log(\hat{y}_i^{(n)})$$
+
+Consequently, the backward gradient should also be divided by the batch size $N$:
+$$\frac{\partial L}{\partial z^{(n)}} = \frac{1}{N}(\hat{y}^{(n)} - y^{(n)})$$
+
+\subsubsection*{Q6.4: Implement Sequential Container (2 points)}
+
+Implement a \texttt{Sequential} class that:
+\begin{enumerate}
+  \item Stores a list of modules
+  \item \texttt{forward(x)}: passes input through all modules in order
+  \item \texttt{backward(grad)}: passes gradient backward through all modules in reverse order
+  \item \texttt{get\_parameters()}: returns all parameters from all modules
+  \item \texttt{get\_gradients()}: returns all gradients from all modules
+\end{enumerate}
+
+\subsubsection*{Q6.5: Implement SGD Optimizer (2 points)}
+
+Implement stochastic gradient descent:
+\begin{lstlisting}[language=Python]
+class SGD:
+    def __init__(self, parameters, lr=0.01):
+        self.parameters = parameters  # List of parameter arrays
+        self.lr = lr
+    
+    def step(self, gradients):
+        """Update parameters using gradients."""
+        for param, grad in zip(self.parameters, gradients):
+            param -= self.lr * grad
+    
+    def zero_grad(self):
+        """Zero out stored gradients (if applicable)."""
+        pass
+\end{lstlisting}
+
+\subsubsection*{Q6.6: Implement Gradient Checking (3 points)}
+
+Implement numerical gradient verification:
+\begin{lstlisting}[language=Python]
+def gradient_check(model, x, y, epsilon=1e-5):
+    """
+    Compare analytical gradients with numerical gradients.
+    
+    For each parameter p:
+        numerical_grad[i] = (L(p[i] + eps) - L(p[i] - eps)) / (2 * eps)
+    
+    Returns: max relative error across all parameters
+    """
+\end{lstlisting}
+
+The relative error should be computed as:
+$$\text{relative\_error} = \frac{||\text{analytical} - \text{numerical}||}{||\text{analytical}|| + ||\text{numerical}||}$$
+
+\textit{Compute this error \textbf{element-wise} for each individual parameter entry (each weight and bias value), then return the \textbf{maximum} relative error across all parameter elements in the network. This approach catches any single incorrect gradient computation.}
+
+A correct implementation should achieve relative error $< 10^{-5}$.
+
+\subsubsection*{Q6.7: Train and Evaluate (4 points)}
+
+Using your library, train a neural network on MNIST:
+
+\textbf{Architecture:} 784 $\rightarrow$ 128 (ReLU) $\rightarrow$ 64 (ReLU) $\rightarrow$ 10 (SoftmaxCE)
+
+\textbf{Training:}
+\begin{enumerate}
+  \item First, run gradient check on a small batch (e.g., 5 samples) and verify error $< 10^{-5}$
+  \item Train for 3 epochs on the full training set
+  \item Use learning rate 0.1, batch size 64
+\end{enumerate}
+
+\textbf{Deliverables:}
+\begin{enumerate}
+  \item Screenshot/output of gradient check showing relative error $< 10^{-5}$
+  \item Plot of training loss vs.\ iteration (or epoch)
+  \item Report final \textbf{test accuracy} (should achieve $> 90\%$)
+  \item Display 10 random test images with predicted vs.\ true labels
+\end{enumerate}
+
+\section*{Submission Checklist}
+
+\begin{itemize}
+  \item[$\square$] \textbf{Problem 4}: Completed notebook with all plots and analysis
+  \item[$\square$] \textbf{Problem 5}: Completed notebook with initialization experiments
+  \item[$\square$] \textbf{Problem 6}:
+  \begin{itemize}
+    \item[$\square$] All module implementations (\texttt{linear.py}, \texttt{activation.py}, \texttt{loss.py}, \texttt{sequential.py}, \texttt{optim.py})
+    \item[$\square$] Gradient check implementation and output
+    \item[$\square$] Training notebook with plots and final accuracy
+  \end{itemize}
+\end{itemize}
+
+\section*{Grading Rubric}
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Problem & Component & Points \\
+    \midrule
+    \textbf{P4} & Data loading and visualization & 2 \\
+    & MLP implementation and training curves & 5 \\
+    & Confusion matrix and per-class analysis & 5 \\
+    & Confidence quadrant analysis & 3 \\
+    \textbf{P5} & Initialization implementations & 3 \\
+    & Activation statistics (Tanh) & 5 \\
+    & Training dynamics comparison & 4 \\
+    & ReLU experiments and analysis & 3 \\
+    \textbf{P6} & Linear layer (forward + backward) & 5 \\
+    & Activations (ReLU + Sigmoid) & 4 \\
+    & SoftmaxCrossEntropy loss & 5 \\
+    & Sequential + SGD & 4 \\
+    & Gradient checking & 3 \\
+    & Training and evaluation & 4 \\
+    \textbf{Total} & & \textbf{55} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section*{Academic Integrity}
+
+You may discuss concepts with classmates, but all code and written analysis must be your own. Your experimental results (accuracies, confusion matrices, plots) should reflect your actual training runs --- do not fabricate or copy results.
+
+\section*{References}
+
+\begin{itemize}
+  \item MedMNIST: Yang et al., ``MedMNIST v2: A Large-Scale Lightweight Benchmark for 2D and 3D Biomedical Image Classification'', Scientific Data, 2023
+  \item Xavier Initialization: Glorot \& Bengio, ``Understanding the difficulty of training deep feedforward neural networks'', AISTATS 2010
+  \item He Initialization: He et al., ``Delving Deep into Rectifiers'', ICCV 2015
+  \item CMU 11-785 Introduction to Deep Learning (for library design inspiration)
+\end{itemize}
+
+\end{document}
